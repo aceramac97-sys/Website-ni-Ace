@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valentine Challenge Game for Sir Renz</title>
+    <style>
+        /* Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap');
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #ffe6f0, #ffb3d9, #f5e6d3, #e6f7ff, #f0e6ff);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
+            color: #333;
+            overflow-x: hidden;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        /* Level Indicator and Progress Bar */
+        #level-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 1.2rem;
+            color: #d63384;
+            z-index: 1000;
+        }
+        #progress-bar {
+            position: fixed;
+            top: 40px;
+            left: 10px;
+            width: 200px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        #progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #ff6699, #ff99cc);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        /* Sections */
+        .section {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .section.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Wordle Game */
+        #wordle {
+            text-align: center;
+        }
+        #wordle h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #d63384;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            width: 300px;
+        }
+        .tile {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        .tile.flip {
+            animation: flip 0.5s ease;
+        }
+        @keyframes flip {
+            0% { transform: rotateY(0); }
+            50% { transform: rotateY(90deg); }
+            100% { transform: rotateY(0); }
+        }
+        .keyboard {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+            width: 500px;
+        }
+        .key {
+            width: 40px;
+            height: 40px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .key:hover { background: #e0e0e0; }
+        .key.correct { background: #4caf50; color: white; }
+        .key.present { background: #ffeb3b; }
+        .key.absent { background: #9e9e9e; color: white; }
+        /* Keys Game */
+        #keys-game {
+            position: relative;
+            width: 100%;
+            height: 70vh;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f5f5f5"/><text x="50" y="50" text-anchor="middle" dy=".3em" font-size="5" fill="%23999">Classroom</text></svg>') no-repeat center center;
+            background-size: cover;
+            border-radius: 20px;
+        }
+        .key-item {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            border-radius: 50%;
+            cursor: pointer;
+            animation: glow 2s infinite alternate;
+            transition: transform 0.2s;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 10px #ffd700; }
+            to { box-shadow: 0 0 20px #ffd700; }
+        }
+        .key-item:hover { transform: scale(1.1); }
+        .key-item.found { opacity: 0; pointer-events: none; }
+        #keys-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2rem;
+            color: #d63384;
+        }
+        #hint {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 1rem;
+            color: #666;
+        }
+        /* Final Page */
+        #final {
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #final h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            color: #d63384;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #final h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: #d63384;
+            margin: 40px 0 20px;
+        }
+        .appreciation-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .letter {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #555;
+        }
+        .balloons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .balloon {
+            width: 80px;
+            height: 100px;
+            background: radial-gradient(circle at 50% 30%, #ff6699, #ff99cc);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            cursor: pointer;
+            animation: float 6s infinite ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            color: white;
+            text-align: center;
+        }
+        .balloon.popped {
+            animation: pop 0.5s ease-out forwards;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .awards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .award {
+            width: 200px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .award:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .superpowers {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .superpower {
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .superpower:hover { transform: scale(1.1); }
+        .final-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #d63384;
+            margin: 40px 0;
+        }
+        /* Envelope */
+        .envelope {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            animation: floatEnvelope 3s ease-in-out infinite;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            color: #d63384;
+        }
+        @keyframes floatEnvelope {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .envelope .seal {
+            position: absolute;
+            bottom: 10px;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #ff6699, #d63384);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+        }
+        .envelope .flap {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            transform-origin: top;
+            transition: transform 1s ease;
+        }
+        .envelope.opened .flap {
+            transform: rotateX(180deg);
+        }
+        .envelope.opened .seal {
+            opacity: 0;
+        }
+        /* Letter */
+        .letter-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .letter-paper {
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23fafafa"/><path d="M0 0 L100 0 L100 100 L0 100 Z" fill="none" stroke="%23ddd" stroke-width="0.5"/></svg>') no-repeat center center;
+            background-size: cover;
+            width: 80%;
+            max-width: 600px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: zoomIn 1s ease;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .letter-paper img {
+            width: 200px;
+            height: 150px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: box-shadow 0.3s;
+        }
+        .letter-paper img:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .letter-text {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        /* Floating Hearts */
+        .floating-hearts {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .heart {
+            position: absolute;
+            font-size: 1.5rem;
+            color: rgba(255, 102, 153, 0.4);
+            animation: float 10s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh); }
+            100% { transform: translateY(-100vh); }
+        }
+        /* Confetti */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff6699;
+            animation: confettiFall 3s ease-out forwards;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        /* Heart Particles */
+        .heart-particle {
+            position: absolute;
+            font-size: 1rem;
+            color: #ff6699;
+            pointer-events: none;
+            animation: particleFloat 2s ease-out forwards;
+        }
+        @keyframes particleFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.5); }
+        }
+        /* Buttons */
+        .btn {
+            background: linear-gradient(45deg, #ff6699, #ff99cc);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .letter-text,
+.letter {
+    white-space: pre-line;
+}
+
+        .btn:hover { transform: scale(1.05); }
+        /* Music Toggle */
+        #music-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 1rem;
+            color: #666;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid { width: 250px; }
+            .keyboard { width: 100%; }
+            .award { width: 100%; }
+            .superpower { width: 120px; height: 120px; }
+            #final h1 { font-size: 2rem; }
+            .envelope { width: 250px; height: 150px; }
+            .letter-paper { width: 90%; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Level Indicator and Progress Bar -->
+    <div id="level-indicator">Level 1</div>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+
+    <!-- Sections -->
+    <div id="wordle" class="section active">
+        <h1>Guess the Word! Clue: Walang Clue</h1>
+        <div class="grid" id="grid"></div>
+        <div class="keyboard" id="keyboard"></div>
+        <button class="btn" id="submit-btn" style="display: none;">Submit</button>
+        <p id="message"></p>
+    </div>
+
+    <div id="keys-game" class="section">
+        <div id="keys-counter">Keys Found: 0/3</div>
+        <div id="hint">Maybe near the books 📚</div>
+        <!-- Keys will be added via JS -->
+    </div>
+
+    <div id="final" class="section">
+        <div class="floating-hearts" id="hearts"></div>
+        <h1>Happy Valentine’s Day, Sir Renz 💖<br>From Section 11-Gates</h1>
+
+                <h2>💌 Heartfelt Letter</h2>
+        <div class="appreciation-section">
+            <div class="letter" id="letter-content"></div>
+        </div>
+
+        <h2>🎈 Pop the Balloon Appreciation</h2>
+        <div class="appreciation-section">
+            <div class="balloons" id="balloons"></div>
+        </div>
+
+        <h2>🏆 Sir Renz Achievement Awards</h2>
+        <div class="appreciation-section">
+            <div class="awards">
+                <div class="award">🏅 Best Explainer Award</div>
+                <div class="award">☕ Coffee Powered Legend Award</div>
+                <div class="award">🧠 Master of Knowledge Award</div>
+                <div class="award">🛡 Survivor of 11-Gates Award</div>
+            </div>
+        </div>
+
+        <h2>✨ Teacher Superpowers</h2>
+        <div class="appreciation-section">
+            <div class="superpowers">
+                <div class="superpower" onclick="alert('Infinite Patience: Thank you for your endless patience with us.')">♾️ Infinite Patience</div>
+                <div class="superpower" onclick="alert('Clear Explanation Beam: Thank you for making lessons clear.')">🔍 Clear Explanation Beam</div>
+                <div class="superpower" onclick="alert('Humor Gods: Nakikipagsabayan sa humor ng mga halimaw')">📝 Homework Creation Ability</div>
+                <div class="superpower" onclick="alert('Motivation Boost Aura: You inspire us every day.')">⚡ Motivation Boost Aura</div>
+            </div>
+        </div>
+
+        <div class="final-message">
+            “Sir Renz, you unlocked every level — just like you help us unlock our potential every day.”
+        </div>
+
+        <!-- Envelope -->
+        <div class="envelope" id="envelope">
+            <div class="flap"></div>
+            <div>To: Sir Renz<br>From: Section 11-Gates 💖</div>
+            <div class="seal">💖</div>
+        </div>
+
+        <footer>
+            Made with ❤️ by Section 11-Gates
+        </footer>
+    </div>
+
+    <!-- Letter Container -->
+    <div class="letter-container" id="letter-container">
+        <div class="letter-paper">
+            <!-- Replace this with our real class photo -->
+            <img src="renz.jpg" alt="Sir Renz & Section 11-Gates">
+            <p>Sir Renz & Section 11-Gates 📸</p>
+            <div class="letter-text" id="letter-text"></div>
+        </div>
+    </div>
+
+    <!-- Music Toggle -->
+    <button id="music-btn">🎵</button>
+
+    <script>
+        // Global Variables
+        let currentLevel = 1;
+        let wordleAttempts = 0;
+        const targetWord = 'RONIE'; // Winning word
+        let currentGuess = '';
+        let keysFound = 0;
+        const totalKeys = 3;
+        let audioPlaying = false;
+        const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'); // Placeholder for romantic music
+
+        // Balloon Messages
+        const balloonMessages = [
+            "Thank you for explaining things more clearly than Google.",
+            "Thank you for never giving up on us.",
+            "Thank you for turning stress into learning.",
+            "Thank you for caring beyond the classroom.",
+            "Thank you for having the patience level of a superhero."
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initWordle();
+            initKeysGame();
+            initFinalPage();
+            updateProgress();
+        });
+
+        // Level Indicator and Progress
+        function updateProgress() {
+            const progress = (currentLevel - 1) / 3 * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+            document.getElementById('level-indicator').textContent = `Level ${currentLevel}`;
+        }
+
+        // Wordle Game
+        function initWordle() {
+            const grid = document.getElementById('grid');
+            const keyboard = document.getElementById('keyboard');
+            const submitBtn = document.getElementById('submit-btn');
+            const message = document.getElementById('message');
+
+            // Create grid
+            for (let i = 0; i < 30; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                grid.appendChild(tile);
+            }
+
+            // Create keyboard
+            const keys = 'QWERTYUIOPASDFGHJKLZXCVBNM'.split('');
+            keys.forEach(key => {
+                const keyEl = document.createElement('div');
+                keyEl.className = 'key';
+                keyEl.textContent = key;
+                keyEl.addEventListener('click', () => addLetter(key));
+                keyboard.appendChild(keyEl);
+            });
+
+            // Physical keyboard support
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitGuess();
+                else if (e.key === 'Backspace') removeLetter();
+                else if (/^[A-Z]$/i.test(e.key)) addLetter(e.key.toUpperCase());
+            });
+
+            function addLetter(letter) {
+                if (currentGuess.length < 5) {
+                    currentGuess += letter;
+                    updateGrid();
+                }
+            }
+
+            function removeLetter() {
+                currentGuess = currentGuess.slice(0, -1);
+                updateGrid();
+            }
+
+            function updateGrid() {
+                const tiles = grid.children;
+                for (let i = 0; i < 30; i++) {
+                    const row = Math.floor(i / 5);
+                    const col = i % 5;
+                    if (row === wordleAttempts && col < currentGuess.length) {
+                        tiles[i].textContent = currentGuess[col];
+                    } else if (row === wordleAttempts) {
+                        tiles[i].textContent = '';
+                    }
+                }
+                submitBtn.style.display = currentGuess.length === 5 ? 'block' : 'none';
+            }
+
+            submitBtn.addEventListener('click', submitGuess);
+
+            function submitGuess() {
+                if (currentGuess.length !== 5) return;
+                checkGuess();
+                wordleAttempts++;
+                currentGuess = '';
+                updateGrid();
+                if (wordleAttempts === 6) {
+                    message.textContent = 'Even legends need a retry sometimes.';
+                    setTimeout(() => location.reload(), 3000); // Restart
+                }
+            }
+
+            function checkGuess() {
+                const tiles = grid.children;
+                const guess = currentGuess.split('');
+                const target = targetWord.split('');
+                const result = Array(5).fill('absent');
+
+                // First pass: correct positions
+                for (let i = 0; i < 5; i++) {
+                    if (guess[i] === target[i]) {
+                        result[i] = 'correct';
+                        target[i] = null;
+                    }
+                }
+
+                // Second pass: present
+                for (let i = 0; i < 5; i++) {
+                    if (result[i] === 'absent' && target.includes(guess[i])) {
+                        result[i] = 'present';
+                        target[target.indexOf(guess[i])] = null;
+                    }
+                }
+
+                // Animate and color tiles
+                for (let i = 0; i < 5; i++) {
+                    const tileIndex = wordleAttempts * 5 + i;
+                    const tile = tiles[tileIndex];
+                    tile.classList.add('flip');
+                    setTimeout(() => {
+                        tile.classList.add(result[i]);
+                        tile.style.background = result[i] === 'correct' ? '#4caf50' : result[i] === 'present' ? '#ffeb3b' : '#9e9e9e';
+                        tile.style.color = result[i] === 'present' ? '#000' : '#fff';
+                    }, 250 * i);
+                }
+
+                // Update keyboard
+                guess.forEach((letter, i) => {
+                    const keyEl = Array.from(keyboard.children).find(k => k.textContent === letter);
+                    if (keyEl) {
+                        keyEl.classList.remove('correct', 'present', 'absent');
+                        keyEl.classList.add(result[i]);
+                    }
+                });
+
+                // Check win
+                if (result.every(r => r === 'correct')) {
+                    // Confetti and hearts
+                    for (let i = 0; i < 100; i++) {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * 100 + 'vw';
+                        confetti.style.background = ['#ff6699', '#ff99cc', '#ffb3d9', '#ffe6f0', '#ffd700'][Math.floor(Math.random() * 5)];
+                        document.body.appendChild(confetti);
+                        setTimeout(() => confetti.remove(), 3000);
+                    }
+                    message.textContent = 'Impressive, Sir Renz… but 11-Gates prepared something more challenging 😌';
+                    setTimeout(() => nextLevel(), 3000);
+                }
+            }
+        }
+
+        // Keys Game
+        function initKeysGame() {
+            const keysGame = document.getElementById('keys-game');
+            const counter = document.getElementById('keys-counter');
+            const hint = document.getElementById('hint');
+
+            // Create keys
+            for (let i = 0; i < totalKeys; i++) {
+                const key = document.createElement('div');
+                key.className = 'key-item';
+                key.style.left = Math.random() * 80 + 10 + '%';
+                key.style.top = Math.random() * 60 + 20 + '%';
+                key.addEventListener('click', () => findKey(key));
+                keysGame.appendChild(key);
+            }
+
+            function findKey(key) {
+                key.classList.add('found');
+                keysFound++;
+                counter.textContent = `Keys Found: ${keysFound}/${totalKeys}`;
+                if (keysFound === totalKeys) {
+                    hint.textContent = 'Access Granted, Sir Renz. Welcome to your Valentine Reward.';
+                    setTimeout(() => nextLevel(), 2000);
+                } else {
+                    hint.textContent = keysFound === 1 ? 'Great teachers always find hidden potential…' : 'Keep looking!';
+                }
+            }
+
+            // Shake on wrong click
+            keysGame.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('key-item')) {
+                    keysGame.style.animation = 'shake 0.5s';
+                    setTimeout(() => keysGame.style.animation = '', 500);
+                }
+            });
+        }
+
+        // Final Page
+        function initFinalPage() {
+            // Typewriter for letter
+            const letterContent = document.getElementById('letter-content');
+const text = `Dear Sir Renz,
+
+On this Valentine's Day, we want to express our deepest gratitude.
+
+Thank you for your patience.
+Thank you for guiding us even when we are difficult.
+Thank you for explaining lessons clearly.
+Thank you for believing in our potential.
+
+You truly deserve a Valentine’s award for surviving 11-Gates 😌🏆
+
+With gratitude and respect,
+
+Section 11-Gates ❤️`;            letterContent.textContent = '';
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    letterContent.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, 50);
+                }
+            }
+            type();
+
+            // Create balloons
+            const balloonsContainer = document.getElementById('balloons');
+            for (let i = 0; i < 5; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.textContent = '💖';
+                balloon.style.animationDelay = Math.random() * 2 + 's';
+                balloon.addEventListener('click', () => popBalloon(balloon, i));
+                balloonsContainer.appendChild(balloon);
+            }
+
+            // Floating hearts
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.innerHTML = '❤️';
+                heart.style.left = Math.random() * 100 + 'vw';
+                document.getElementById('hearts').appendChild(heart);
+                setTimeout(() => heart.remove(), 10000);
+            }, 1000);
+
+            // Confetti on final page
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = ['#ff6699', '#ff99cc', '#ffb3d9', '#ffe6f0', '#ffd700'][Math.floor(Math.random() * 5)];
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+
+            // Envelope click
+            document.getElementById('envelope').addEventListener('click', openEnvelope);
+        }
+
+        // Pop Balloon
+        function popBalloon(balloon, index) {
+            balloon.classList.add('popped');
+            // Confetti burst
+            for (let i = 0; i < 20; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = balloon.style.left;
+                confetti.style.top = balloon.style.top;
+                confetti.style.background = ['#ff6699', '#ff99cc', '#ffb3d9', '#ffe6f0', '#ffd700'][Math.floor(Math.random() * 5)];
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 3000);
+            }
+            // Show message
+            setTimeout(() => {
+                alert(balloonMessages[index]);
+            }, 500);
+        }
+
+        // Open Envelope
+        function openEnvelope() {
+            const envelope = document.getElementById('envelope');
+            const letterContainer = document.getElementById('letter-container');
+            const letterText = document.getElementById('letter-text');
+
+            envelope.classList.add('opened');
+            setTimeout(() => {
+                letterContainer.style.display = 'flex';
+                // Typewriter for letter text
+                const text = `Dear Sir Renz,
+
+Happy Valentine’s Day!
+
+Kami ang iyong ka-date sa araw na 'to, sana po ay ma-enjoy niyo ang gawa "namin" or kilala niyo na po kung sino gumawa :) na webpage na ito, sabi nga po nila you got to utiliza your talent.
+Pasensiya na dahil kami po ay sumosobra na sa kulit, at nagiging nakakainis na po kami.
+
+Pero po wala e, ganito na po talaga kami. Thank you po sa pagmo-motivate sa 'min araw-araw. Thank you po sa pag support sa 'min sa kahit saan namin gusto.
+Salamat po sa sobrang habang pasensiya sa 'min.
+
+Thank you po sa lahat-lahat'
+
+Section 11-Gates ❤️`;
+                letterText.textContent = '';
+                let i = 0;
+                function type() {
+                    if (i < text.length) {
+                        letterText.textContent += text.charAt(i);
+                        i++;
+                        setTimeout(type, 50);
+                    }
+                }
+                type();
+                // Confetti burst
+                for (let i = 0; i < 50; i++) {
+                    setTimeout(() => {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * 100 + 'vw';
+                        confetti.style.background = ['#ff6699', '#ff99cc', '#ffb3d9', '#ffe6f0', '#ffd700'][Math.floor(Math.random() * 5)];
+                        document.body.appendChild(confetti);
+                        setTimeout(() => confetti.remove(), 3000);
+                    }, i * 50);
+                }
+            }, 1000);
+        }
+
+        // Heart Particles on Cursor
+        document.addEventListener('mousemove', (e) => {
+            const particle = document.createElement('div');
+            particle.className = 'heart-particle';
+            particle.innerHTML = '💕';
+            particle.style.left = e.pageX + 'px';
+            particle.style.top = e.pageY + 'px';
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 2000);
+        });
+
+        // Next Level Function
+        function nextLevel() {
+            document.querySelector('.section.active').classList.remove('active');
+            currentLevel++;
+            updateProgress();
+            if (currentLevel === 2) {
+                document.getElementById('keys-game').classList.add('active');
+            } else if (currentLevel === 3) {
+                document.getElementById('final').classList.add('active');
+                initFinalPage(); // Trigger animations
+            }
+        }
+
+        // Music Toggle
+        document.getElementById('music-btn').addEventListener('click', () => {
+            if (audioPlaying) {
+                audio.pause();
+                audioPlaying = false;
+            } else {
+                audio.play();
+                audioPlaying = true;
+            }
+        });
+
+        // Shake Animation (for wrong clicks in keys game)
+        // Note: Added to CSS dynamically if needed, but assuming it's in style
+        // If not, add: @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    </script>
+</body>
+</html>
